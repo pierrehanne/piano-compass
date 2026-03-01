@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Piano Compass
+
+> Your guide through chords, scales, and cadences.
+
+A fast, interactive web app for jazz pianists to explore chords, scales, common cadences, and the circle of fifths.
+
+## Features
+
+- **Chord Explorer** - Browse jazz chord types with notes, intervals, and piano visualization
+- **Scale Explorer** - Explore modes, jazz scales, and exotic scales
+- **Circle of Fifths** - Interactive visualization with key relationships
+- **Cadence Browser** - Common jazz progressions (II-V-I, tritone subs, turnarounds)
+- **Audio Playback** - Hear chords and scales with synthesized piano sound
+- **Light & Dark Themes** - Comfortable viewing in any environment
+
+## Tech Stack
+
+- [Next.js 16](https://nextjs.org) - React framework
+- [TypeScript](https://www.typescriptlang.org) - Type safety
+- [Tailwind CSS v4](https://tailwindcss.com) - Styling
+- [shadcn/ui](https://ui.shadcn.com) - UI components
+- [Tonal.js](https://github.com/tonaljs/tonal) - Music theory
+- [Tone.js](https://tonejs.github.io) - Audio synthesis
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command           | Description              |
+| ----------------- | ------------------------ |
+| `pnpm dev`        | Start development server |
+| `pnpm build`      | Build for production     |
+| `pnpm test`       | Run tests                |
+| `pnpm test:watch` | Run tests in watch mode  |
+| `pnpm lint`       | Lint code                |
+| `pnpm format`     | Format code              |
 
-## Learn More
+## Release & Deploy
 
-To learn more about Next.js, take a look at the following resources:
+This project uses a tag-based release workflow:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **CI** runs on every push/PR to `main` (lint, test, build)
+2. **Release** is triggered by pushing a semver tag:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+3. The release workflow will:
+   - Run CI checks
+   - Generate a changelog from commit messages (conventional commits)
+   - Create a GitHub Release with the changelog
+   - Deploy to Vercel production
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Commit messages are grouped by prefix: `feat:`, `fix:`, `refactor:`, `docs:`, `style:`, `test:`, `chore:`, `perf:`.
 
-## Deploy on Vercel
+### Required Secrets
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Secret              | Description            |
+| ------------------- | ---------------------- |
+| `VERCEL_TOKEN`      | Vercel API token       |
+| `VERCEL_ORG_ID`     | Vercel organization ID |
+| `VERCEL_PROJECT_ID` | Vercel project ID      |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+[MIT](LICENSE)
