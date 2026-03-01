@@ -1,0 +1,142 @@
+name: Release & Deploy
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  release:
+    needs: ci
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog from commits
+        id: changelog
+        env:
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # Get the previous tag (or initial commit if first release)
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          CURRENT_TAG="${GITHUB_REF_NAME}"
+
+          echo "## What's Changed in ${CURRENT_TAG}" > changelog.md
+          echo "" >> changelog.md
+
+          # Group commits by conventional commit type
+          declare -A SECTIONS
+          SECTIONS[feat]="### New Features"
+          SECTIONS[fix]="### Bug Fixes"
+          SECTIONS[refactor]="### Refactoring"
+          SECTIONS[docs]="### Documentation"
+          SECTIONS[style]="### Styling"
+          SECTIONS[test]="### Tests"
+          SECTIONS[chore]="### Chores"
+          SECTIONS[perf]="### Performance"
+
+          UNCATEGORIZED=""
+
+          while IFS= read -r line; do
+            if [ -z "$line" ]; then continue; fi
+
+            MATCHED=false
+            for prefix in feat fix refactor docs style test chore perf; do
+              if echo "$line" | grep -qiE "^${prefix}(\(.*\))?:"; then
+                SECTIONS["${prefix}_items"]+="- ${line}"$'\n'
+                MATCHED=true
+                break
+              fi
+            done
+
+            if [ "$MATCHED" = false ]; then
+              UNCATEGORIZED+="- ${line}"$'\n'
+            fi
+          done < <(git log "${PREV_TAG}..HEAD" --pretty=format:"%s" --no-merges)
+
+          # Write categorized sections
+          for prefix in feat fix refactor perf docs style test chore; do
+            ITEMS="${SECTIONS["${prefix}_items"]}"
+            if [ -n "$ITEMS" ]; then
+              echo "${SECTIONS[$prefix]}" >> changelog.md
+              echo "" >> changelog.md
+              echo "$ITEMS" >> changelog.md
+            fi
+          done
+
+          # Write uncategorized commits
+          if [ -n "$UNCATEGORIZED" ]; then
+            echo "### Other Changes" >> changelog.md
+            echo "" >> changelog.md
+            echo "$UNCATEGORIZED" >> changelog.md
+          fi
+
+          echo "" >> changelog.md
+          echo "**Full Changelog**: https://github.com/${GH_REPO}/compare/${PREV_TAG}...${CURRENT_TAG}" >> changelog.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: changelog.md
+          generate_release_notes: false
+
+  deploy:
+    needs: release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          pnpm dlx vercel --prod --token "$VERCEL_TOKEN"
